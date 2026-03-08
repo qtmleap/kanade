@@ -53,7 +53,7 @@ async def handler(job, token):
 
 async def main():
     worker = Worker(
-        "gamdl",
+        "kanade",
         handler,
         {"connection": get_redis_connection()}
     )

@@ -138,7 +138,7 @@ def scalar_docs():
     return Response(SCALAR_HTML, content_type='text/html')
 
 async def add_job(name: str, data: dict):
-    queue = Queue("gamdl", {
+    queue = Queue("kanade", {
       "connection": {
         "host": os.getenv("REDIS_HOST", "redis"),
         "port": int(os.getenv("REDIS_PORT", "6379"))
