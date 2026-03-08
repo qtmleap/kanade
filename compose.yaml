@@ -1,0 +1,58 @@
+services:
+  redis:
+    image: redis:8.4.0
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  kanade:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "15100:5000"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ENV: development
+    volumes:
+      - ./cookies.txt:/app/cookies.txt:ro
+      - ./config.ini:/app/config.ini
+      - ./content:/app/content
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  dashboard:
+    image: venatum/bull-board:latest
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - 13100:3000
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  wrapper:
+    image: tkgling/wrapper:23
+    volumes:
+      - rootfs:/app/rootfs
+    environment:
+      USERNAME: $USERNAME
+      PASSWORD: $PASSWORD
+    restart: unless-stopped
+
+
+volumes:
+  redis_data:
+  rootfs:
+    driver: local
+    name: rootfs

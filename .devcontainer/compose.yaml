@@ -1,0 +1,59 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../:/home/vscode/app:cached
+      - venv:/home/vscode/app/.venv
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - 5555:5000
+    tty: true
+    stdin_open: true
+
+  dashboard:
+    image: venatum/bull-board:latest
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - 13000:3000
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.4.0
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  wrapper:
+    image: tkgling/wrapper:23
+    volumes:
+      - rootfs:/app/rootfs
+    environment:
+      USERNAME: $USERNAME
+      PASSWORD: $PASSWORD
+    restart: unless-stopped
+
+volumes:
+  venv:
+    driver: local
+  redis_data:
+    name: redis_data
+    driver: local
+  rootfs:
+    name: rootfs
+    driver: local

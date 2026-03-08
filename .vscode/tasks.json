@@ -1,0 +1,58 @@
+{
+    "version": "2.0.0",
+    "inputs": [
+        {
+            "id": "bumpLevel",
+            "type": "pickString",
+            "description": "バージョンの上げ幅を選択",
+            "options": [
+                "patch",
+                "minor",
+                "major"
+            ],
+            "default": "patch"
+        }
+    ],
+    "tasks": [
+        // ── Docker Build (current version + latest) ──────────────────
+        {
+            "label": "docker: build",
+            "type": "shell",
+            "command": "VERSION=$(python3 -c \"import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])\") && echo \"Building tkgling/kanade:${VERSION}\" && docker buildx build --platform linux/amd64,linux/arm64 -t tkgling/kanade:${VERSION} -t tkgling/kanade:latest .",
+            "group": "build",
+            "problemMatcher": []
+        },
+        // ── Docker Push (current version + latest) ───────────────────
+        {
+            "label": "docker: push",
+            "type": "shell",
+            "command": "VERSION=$(python3 -c \"import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])\") && echo \"Pushing tkgling/kanade:${VERSION} + latest\" && docker push tkgling/kanade:${VERSION} && docker push tkgling/kanade:latest",
+            "group": "none",
+            "problemMatcher": [],
+            "dependsOn": [
+                "docker: build"
+            ]
+        },
+        // ── Version Bump ─────────────────────────────────────────────
+        {
+            "label": "version: bump",
+            "type": "shell",
+            "command": "python3 -c \"\nimport tomllib, re, sys\nlevel = '${input:bumpLevel}'\nwith open('pyproject.toml', 'rb') as f:\n    data = tomllib.load(f)\nold = data['project']['version']\nmajor, minor, patch = (int(x) for x in old.split('.'))\nif level == 'major':\n    major, minor, patch = major+1, 0, 0\nelif level == 'minor':\n    minor, patch = minor+1, 0\nelse:\n    patch += 1\nnew = f'{major}.{minor}.{patch}'\nwith open('pyproject.toml', 'r') as f:\n    text = f.read()\ntext = text.replace(f'version = \\\"{ old }\\\"', f'version = \\\"{new}\\\"', 1)\nwith open('pyproject.toml', 'w') as f:\n    f.write(text)\nprint(f'{old} -> {new}')\n\"",
+            "group": "none",
+            "problemMatcher": []
+        },
+        // ── Release: bump + build + push ─────────────────────────────
+        {
+            "label": "release: deploy",
+            "type": "shell",
+            "command": "echo 'Release complete!'",
+            "dependsOn": [
+                "version: bump",
+                "docker: push"
+            ],
+            "dependsOrder": "sequence",
+            "group": "none",
+            "problemMatcher": []
+        }
+    ]
+}

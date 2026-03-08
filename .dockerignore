@@ -1,0 +1,35 @@
+# ---- Git / VCS ----
+.git
+.gitignore
+
+# ---- Dev container ----
+.devcontainer
+
+# ---- Python ----
+__pycache__
+*.pyc
+*.pyo
+.venv
+.pytest_cache
+__tests__
+
+# ---- IDE ----
+.vscode
+.idea
+*.swp
+*.swo
+
+# ---- Sensitive / runtime files (mount at runtime) ----
+config.yaml
+cookies.txt
+devices/
+
+# ---- Output / content ----
+content/
+
+# ---- Docs / misc ----
+docs/
+js/
+*.md
+LICENSE
+.github
