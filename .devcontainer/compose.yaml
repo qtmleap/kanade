@@ -52,6 +52,7 @@ volumes:
   venv:
     driver: local
   redis_data:
+    name: redis_data_bullmq
     driver: local
   rootfs:
     name: rootfs

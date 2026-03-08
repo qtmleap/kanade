@@ -34,6 +34,7 @@ services:
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      QUEUES: kanade,nagisa
     ports:
       - 13100:3000
     depends_on:
