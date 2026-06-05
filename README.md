@@ -2,16 +2,19 @@
 
 Apple Music download queue server powered by [gamdl](https://github.com/glomatico/gamdl) and [BullMQ](https://docs.bullmq.io/).
 
-Accepts download requests via REST API, queues them in Redis, and processes them with a background worker.
+Accepts download requests via REST API, queues them in Redis, and processes them with a background worker. Decryption goes through a [wrapper-v2](https://github.com/glomatico/wrapper-v2) sidecar, and completed targets are recorded in PostgreSQL so duplicate requests are skipped.
 
 ## Architecture
 
 ```mermaid
 graph LR
     Client -->|POST /api/queues| API[Flask API]
+    API -->|dedup check / skip| PG[(PostgreSQL)]
     API -->|enqueue| Redis[(Redis)]
     Redis -->|dequeue| Worker[BullMQ Worker]
     Worker -->|exec| gamdl
+    gamdl -->|auth + FairPlay decrypt| Wrapper[wrapper-v2]
+    Worker -->|mark downloaded| PG
 ```
 
 ## Quick Start
@@ -20,7 +23,9 @@ graph LR
 
 - Python 3.12+
 - Redis
-- gamdl dependencies: `N_m3u8DL-RE`, `mp4decrypt`, `MP4Box`, `amdecrypt`, `ffmpeg`
+- PostgreSQL
+- A running [wrapper-v2](https://github.com/glomatico/wrapper-v2) instance (authenticated with an Apple ID)
+- gamdl native dependencies: `N_m3u8DL-RE`, `mp4decrypt`, `MP4Box`, `amdecrypt`, `ffmpeg`
 
 ### Run locally
 
@@ -29,23 +34,32 @@ graph LR
 uv sync
 
 # Start the server (API + worker)
-python main.py serve
+uv run python main.py serve
 ```
 
-The API server starts on `http://localhost:5000`.
+The API server starts on `http://localhost:5000`. On startup both the API and worker
+ensure the PostgreSQL `downloads` table exists, so a reachable `DATABASE_URL` is required.
 
 ### Configuration
 
-Place a `config.ini` in the project root for gamdl settings:
+Place a `config.ini` in the project root for gamdl settings. The decryption wrapper and
+artist auto-selection are the important Kanade-specific knobs:
 
 ```ini
 [gamdl]
-cookies_path = ./cookies.txt
+output_path = ./content
 download_mode = nm3u8dlre
-output_path = ./Apple Music
-cover_format = jpg
-cover_size = 1200
+song_codec_piority = alac
+artist_auto_select = all-albums
+use_wrapper = true
+wrapper_url = http://wrapper:80
 ```
+
+- `use_wrapper` / `wrapper_url` — route account, playback and decryption through wrapper-v2.
+- `artist_auto_select = all-albums` — required so artist URLs resolve non-interactively in
+  the worker (otherwise gamdl raises an interactive prompt that hangs the queue). Valid
+  values: `main-albums`, `compilation-albums`, `live-albums`, `singles-eps`, `all-albums`,
+  `top-songs`, `music-videos`.
 
 See [gamdl documentation](https://github.com/glomatico/gamdl) for all available options.
 
@@ -55,6 +69,7 @@ See [gamdl documentation](https://github.com/glomatico/gamdl) for all available 
 |---|---|---|
 | `REDIS_HOST` | `redis` | Redis hostname |
 | `REDIS_PORT` | `6379` | Redis port |
+| `DATABASE_URL` | — | PostgreSQL DSN, e.g. `postgresql://kanade:kanade@postgres:5432/kanade` (required) |
 | `ENV` | — | Set to `production` to use gunicorn |
 
 ## API
@@ -63,31 +78,59 @@ Interactive API documentation is available at `/docs` (Scalar UI).
 
 ### `POST /api/queues`
 
-Add an album to the download queue.
+Queue an album or an artist for download. Provide **exactly one** of `album_id` or
+`artist_id`.
 
 ```bash
+# album
 curl -X POST http://localhost:5000/api/queues \
   -H "Content-Type: application/json" \
   -d '{"album_id": 1869843536}'
+
+# artist (downloads all albums, per artist_auto_select)
+curl -X POST http://localhost:5000/api/queues \
+  -H "Content-Type: application/json" \
+  -d '{"artist_id": 909253}'
 ```
 
 **Request body:**
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `album_id` | `integer` | ✅ | Apple Music album ID |
-| `options.overwrite` | `boolean` | — | Overwrite existing files (default: `false`) |
+| `album_id` | `integer` | one of | Apple Music album ID (mutually exclusive with `artist_id`) |
+| `artist_id` | `integer` | one of | Apple Music artist ID (mutually exclusive with `album_id`) |
+| `options.overwrite` | `boolean` | — | Overwrite existing files and bypass the duplicate-skip check (default: `false`) |
 
-**Response:**
+**Response (queued):**
 
 ```json
 {
   "id": "1",
   "name": "process",
-  "data": { "url": "https://music.apple.com/jp/album/1869843536" },
+  "data": {
+    "url": "https://music.apple.com/jp/album/1869843536",
+    "media_type": "album",
+    "media_id": 1869843536,
+    "overwrite": false
+  },
   "timestamp": 1741430400000
 }
 ```
+
+**Response (already downloaded — skipped, not enqueued):**
+
+```json
+{
+  "status": "skipped",
+  "reason": "already downloaded",
+  "media_type": "album",
+  "media_id": 1869843536,
+  "url": "https://music.apple.com/jp/album/1869843536"
+}
+```
+
+A target is remembered by `(media_type, media_id)` after the worker finishes it. Send
+`{"options": {"overwrite": true}}` to re-download a target that was already recorded.
 
 ### `GET /health`
 
@@ -114,24 +157,29 @@ docker buildx build -t kanade .
 ```bash
 docker run --rm -it \
   -e REDIS_HOST=redis \
+  -e DATABASE_URL=postgresql://kanade:kanade@postgres:5432/kanade \
   -v ./cookies.txt:/app/cookies.txt:ro \
   -v ./config.ini:/app/config.ini:ro \
   -p 5000:5000 \
   kanade serve
 ```
 
+Pre-built images are published to `ghcr.io/qtmleap/kanade` on each `vX.Y.Z` tag.
+
 ## Development
 
-The dev container includes all native dependencies pre-built. Open the project in VS Code with the Dev Containers extension.
+The dev container includes all native dependencies pre-built. Open the project in VS Code
+with the Dev Containers extension.
 
 ### Services (compose)
 
-| Service | Port | Description |
+| Service | Host port → container | Description |
 |---|---|---|
-| `app` | 5555 → 5000 | Kanade API + worker |
-| `dashboard` | 13000 → 3000 | Bull Board (queue dashboard) |
-| `redis` | 6379 | Redis |
-| `wrapper` | — | Auth wrapper |
+| `kanade` / `app` | 15100 → 5000 | Kanade API + worker |
+| `dashboard` | 13100 → 3000 | Bull Board (queue dashboard) |
+| `redis` | 6379 | Redis queue backend |
+| `postgres` | 5432 (internal) | Duplicate-skip store |
+| `wrapper` | — | wrapper-v2 (Apple Music auth + decryption) |
 
 ### VS Code Tasks
 
