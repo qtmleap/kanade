@@ -90,5 +90,5 @@ jobs:
           push: false
           load: true
           tags: gamdl:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=smoke
+          cache-to: type=gha,mode=max,scope=smoke

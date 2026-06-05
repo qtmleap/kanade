@@ -80,5 +80,5 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             BASE_IMAGE=${{ matrix.base_image }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.python_version }}-${{ matrix.base_image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.python_version }}-${{ matrix.base_image }}
