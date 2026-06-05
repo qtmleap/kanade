@@ -28,12 +28,17 @@ OPENAPI_SPEC = {
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "required": ["album_id"],
+                                "description": "Provide exactly one of album_id or artist_id.",
                                 "properties": {
                                     "album_id": {
                                         "type": "integer",
-                                        "description": "Apple Music album ID",
+                                        "description": "Apple Music album ID. Mutually exclusive with artist_id.",
                                         "example": 1869843536,
+                                    },
+                                    "artist_id": {
+                                        "type": "integer",
+                                        "description": "Apple Music artist ID. Mutually exclusive with album_id.",
+                                        "example": 909253,
                                     },
                                     "options": {
                                         "type": "object",
@@ -161,15 +166,28 @@ def create_job():
     data = request.get_json() or {}
 
     album_id = data.get("album_id")
+    artist_id = data.get("artist_id")
     options = data.get("options")
 
-    if album_id is None:
-        return jsonify({"error": "album_id is required"}), 400
+    if album_id is None and artist_id is None:
+        return jsonify(
+            {"error": "exactly one of album_id or artist_id is required"}
+        ), 400
+
+    if album_id is not None and artist_id is not None:
+        return jsonify({"error": "album_id and artist_id are mutually exclusive"}), 400
+
+    if album_id is not None:
+        media_type = "album"
+        raw_id = album_id
+    else:
+        media_type = "artist"
+        raw_id = artist_id
 
     try:
-        album_id = int(album_id)
+        media_id = int(raw_id)
     except (TypeError, ValueError):
-        return jsonify({"error": "album_id must be an integer"}), 400
+        return jsonify({"error": f"{media_type}_id must be an integer"}), 400
 
     if options is None:
         overwrite = False
@@ -183,9 +201,8 @@ def create_job():
     else:
         overwrite = bool(overwrite)
 
-    job_info = enqueue(
-        "process", {"url": f"https://music.apple.com/jp/album/{album_id}"}
-    )
+    url = f"https://music.apple.com/jp/{media_type}/{media_id}"
+    job_info = enqueue("process", {"url": url})
     return jsonify(job_info)
 
 
