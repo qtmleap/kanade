@@ -1,0 +1,94 @@
+name: Integration
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+    branches:
+      - master
+      - develop
+  workflow_dispatch:
+
+jobs:
+  lint-actions:
+    name: actionlint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Run actionlint
+        uses: rhysd/actionlint@v1.7.12
+
+  lint-dockerfile:
+    name: hadolint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        dockerfile:
+          - Dockerfile
+          - .devcontainer/Dockerfile
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Run hadolint on ${{ matrix.dockerfile }}
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: ${{ matrix.dockerfile }}
+
+  lint-python:
+    name: uv + ruff
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.2.0
+        with:
+          enable-cache: true
+
+      - name: Sync project (lockfile check)
+        run: uv sync --frozen
+
+      - name: Format check (ruff)
+        run: uvx ruff format --check .
+
+      - name: Lint (ruff)
+        run: uvx ruff check .
+
+  build-smoke:
+    name: docker build smoke (no push)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image (linux/amd64, no push)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: gamdl:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

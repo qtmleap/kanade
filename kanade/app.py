@@ -1,6 +1,5 @@
 import asyncio
 import os
-import re
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from bullmq import Queue
@@ -63,9 +62,7 @@ OPENAPI_SPEC = {
                                         "name": {"type": "string"},
                                         "data": {
                                             "type": "object",
-                                            "properties": {
-                                                "url": {"type": "string"}
-                                            },
+                                            "properties": {"url": {"type": "string"}},
                                         },
                                         "timestamp": {"type": "integer"},
                                     },
@@ -79,9 +76,7 @@ OPENAPI_SPEC = {
                             "application/json": {
                                 "schema": {
                                     "type": "object",
-                                    "properties": {
-                                        "error": {"type": "string"}
-                                    },
+                                    "properties": {"error": {"type": "string"}},
                                 }
                             }
                         },
@@ -128,39 +123,45 @@ SCALAR_HTML = """<!doctype html>
 """
 
 
-@app.route('/openapi.json')
+@app.route("/openapi.json")
 def openapi_spec():
     return jsonify(OPENAPI_SPEC)
 
 
-@app.route('/docs')
+@app.route("/docs")
 def scalar_docs():
-    return Response(SCALAR_HTML, content_type='text/html')
+    return Response(SCALAR_HTML, content_type="text/html")
+
 
 async def add_job(name: str, data: dict):
-    queue = Queue("kanade", {
-      "connection": {
-        "host": os.getenv("REDIS_HOST", "redis"),
-        "port": int(os.getenv("REDIS_PORT", "6379"))
-      }
-    })
+    queue = Queue(
+        "kanade",
+        {
+            "connection": {
+                "host": os.getenv("REDIS_HOST", "redis"),
+                "port": int(os.getenv("REDIS_PORT", "6379")),
+            }
+        },
+    )
     job = await queue.add(name, data)
     return {
         "id": job.id,
         "name": job.name,
         "data": job.data,
-        "timestamp": job.timestamp
+        "timestamp": job.timestamp,
     }
+
 
 def enqueue(name: str, data: dict):
     return asyncio.run(add_job(name, data))
 
-@app.route('/api/queues', methods=['POST'])
+
+@app.route("/api/queues", methods=["POST"])
 def create_job():
     data = request.get_json() or {}
 
-    album_id = data.get('album_id')
-    options = data.get('options')
+    album_id = data.get("album_id")
+    options = data.get("options")
 
     if album_id is None:
         return jsonify({"error": "album_id is required"}), 400
@@ -173,21 +174,25 @@ def create_job():
     if options is None:
         overwrite = False
     elif isinstance(options, dict):
-        overwrite = options.get('overwrite', False)
+        overwrite = options.get("overwrite", False)
     else:
         return jsonify({"error": "options must be an object"}), 400
 
     if isinstance(overwrite, str):
-        overwrite = overwrite.lower() in ['true', '1', 'yes', 'on']
+        overwrite = overwrite.lower() in ["true", "1", "yes", "on"]
     else:
         overwrite = bool(overwrite)
 
-    job_info = enqueue("process", {"url": f"https://music.apple.com/jp/album/{album_id}" })
+    job_info = enqueue(
+        "process", {"url": f"https://music.apple.com/jp/album/{album_id}"}
+    )
     return jsonify(job_info)
 
-@app.route('/health')
+
+@app.route("/health")
 def health():
     return jsonify({"status": "ok"})
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)

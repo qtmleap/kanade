@@ -284,3 +284,6 @@ devices/**/*.wvd
 # User config
 config.yaml.*
 !config.yaml.example
+
+# Apple device rootfs (binaries, tzdata)
+rootfs/

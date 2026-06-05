@@ -4,27 +4,53 @@
     "diffEditor.experimental.showMoves": true,
     "diffEditor.renderSideBySide": false,
     "editor.formatOnPaste": true,
+    "editor.formatOnSave": true,
     "editor.guides.bracketPairs": "active",
     "editor.codeActionsOnSave": {},
-    "editor.formatOnSave": true,
+    "files.exclude": {
+        "**/.venv": true,
+        "**/.ruff_cache": true,
+        "**/.mypy_cache": true,
+        "**/.pytest_cache": true,
+        "**/__pycache__": true,
+        "**/*.pyc": true
+    },
     "files.watcherExclude": {
-        ".venv": true
+        "**/.venv/**": true,
+        "**/.ruff_cache/**": true,
+        "**/.mypy_cache/**": true,
+        "**/.pytest_cache/**": true,
+        "**/__pycache__/**": true
+    },
+    "search.exclude": {
+        "**/.venv": true,
+        "**/.ruff_cache": true,
+        "**/.mypy_cache": true,
+        "**/.pytest_cache": true,
+        "**/__pycache__": true,
+        "**/*.pyc": true
     },
     "scm.defaultViewMode": "tree",
-    "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter"
-    },
-    "gitdoc.enabled": true,
-    "gitdoc.commitValidationLevel": "none",
-    "gitdoc.autoCommitDelay": 0,
-    "gitdoc.autoPush": "onCommit",
-    "gitdoc.ai.model": "gpt-4o",
-    "gitdoc.autoPull": "off",
-    "gitdoc.ai.enabled": true,
-    "gitdoc.excludeBranches": [
-        "master",
-        "develop"
+    "python.languageServer": "Pylance",
+    "python.formatting.provider": "black",
+    "python.linting.flake8Enabled": true,
+    "python.linting.flake8Args": [
+        "--max-line-length 119"
     ],
-    "gitdoc.ai.customInstructions": "Generate a commit message in English following the Conventional Commits specification and `commitlint` rules. Use the format `<type>(<scope>): <short description>` and choose `<type>` from `build`, `ci`, `docs`, `feat`, `fix`, `perf`, `chore`, `refactor`, `revert`, `format`, `test`. Limit `<short description>` to 72 characters. If `<short description>` starts with an English word, it must be in lowercase.",
-    "gitlens.ai.generateCommitMessage.customInstructions": "Generate a commit message in English following the Conventional Commits specification and `commitlint` rules. Use the format `<type>(<scope>): <short description>` and choose `<type>` from `build`, `ci`, `docs`, `feat`, `fix`, `perf`, `chore`, `refactor`, `revert`, `format`, `test`. Limit `<short description>` to 72 characters. If `<short description>` starts with an English word, it must be in lowercase."
+    "python.linting.mypyEnabled": true,
+    "python.linting.banditEnabled": true,
+    "python.analysis.completeFunctionParens": true,
+    "python.analysis.logLevel": "Warning",
+    "python.analysis.memory.keepLibraryAst": true,
+    "python.autoComplete.addBrackets": true,
+    "python.diagnostics.sourceMapsEnabled": true,
+    "python.insidersChannel": "daily",
+    "pylance.insidersChannel": "daily",
+    "python.testing.pytestEnabled": true,
+    "python.terminal.activateEnvInCurrentTerminal": false,
+    "python.terminal.activateEnvironment": false,
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true
+    }
 }

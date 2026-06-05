@@ -1,0 +1,26 @@
+name: Guard branch flow
+
+# Enforce the git flow: pull requests into master may only originate from
+# develop. Uses pull_request_target so the check always runs with master's
+# copy of this workflow and cannot be bypassed by editing the file on the
+# head branch. No untrusted code is checked out — we only read head_ref.
+on:
+  pull_request_target:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  source-branch:
+    name: PR into master must come from develop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify head branch is develop
+        if: github.head_ref != 'develop'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          echo "::error::PRs into master must come from 'develop' (got '${HEAD_REF}')."
+          exit 1

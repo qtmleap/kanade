@@ -12,21 +12,29 @@ def start_api():
 
     if os.getenv("ENV") == "production":
         import subprocess
-        subprocess.run([
-            "gunicorn",
-            "--bind", "0.0.0.0:5000",
-            "--workers", "4",
-            "--chdir", script_dir,
-            "app:app",
-        ])
+
+        subprocess.run(
+            [
+                "gunicorn",
+                "--bind",
+                "0.0.0.0:5000",
+                "--workers",
+                "4",
+                "--chdir",
+                script_dir,
+                "app:app",
+            ]
+        )
     else:
         from kanade.app import app
+
         app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
 
 
 def start_worker():
     """BullMQ ワーカーを起動"""
     from kanade.worker import main as worker_main
+
     asyncio.run(worker_main())
 
 
@@ -45,7 +53,7 @@ def cmd_serve(_args):
     print(f"[serve] BullMQ worker started (pid={p_worker.pid})", flush=True)
 
     def _shutdown(signum, frame):
-        print(f"\n[serve] Shutting down...")
+        print("\n[serve] Shutting down...")
         for p in processes:
             if p.is_alive():
                 p.terminate()
@@ -66,7 +74,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
 
     # serve
-    serve_parser = subparsers.add_parser(
+    subparsers.add_parser(
         "serve",
         help="Start the API server and BullMQ worker",
     )

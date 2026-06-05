@@ -6,16 +6,19 @@ from bullmq import Worker
 from kanade.tasks import run_gamdl
 
 # ANSI カラーコードを除去する正規表現
-ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
 
 def strip_ansi(text: str) -> str:
-    return ANSI_ESCAPE.sub('', text)
+    return ANSI_ESCAPE.sub("", text)
+
 
 def get_redis_connection():
     return {
         "host": os.getenv("REDIS_HOST", "redis"),
-        "port": int(os.getenv("REDIS_PORT", "6379"))
+        "port": int(os.getenv("REDIS_PORT", "6379")),
     }
+
 
 async def handler(job, token):
     """ジョブを処理するハンドラー"""
@@ -51,17 +54,16 @@ async def handler(job, token):
         await job.log(msg)
         raise e
 
+
 async def main():
-    worker = Worker(
-        "kanade",
-        handler,
-        {"connection": get_redis_connection()}
-    )
+    # kept bound so the worker is not garbage-collected while the loop runs
+    _worker = Worker("kanade", handler, {"connection": get_redis_connection()})
 
     print("Worker started, waiting for jobs...", flush=True)
 
     while True:
         await asyncio.sleep(1)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

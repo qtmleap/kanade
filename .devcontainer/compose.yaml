@@ -40,7 +40,7 @@ services:
     restart: unless-stopped
 
   wrapper:
-    image: tkgling/wrapper:23
+    image: tkgling/wrapper:latest
     volumes:
       - rootfs:/app/rootfs
     environment:
