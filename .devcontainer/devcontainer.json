@@ -1,60 +1,59 @@
 {
-    "name": "Kanade",
-    "dockerComposeFile": [
-        "compose.yaml"
-    ],
-    "service": "app",
-    "workspaceFolder": "/home/vscode/app",
-    "shutdownAction": "stopCompose",
-    "remoteUser": "vscode",
-    "mounts": [
-        "source=${env:HOME}/home/vscode/.ssh,target=/.ssh,type=bind,consistency=cached,readonly"
-    ],
-    "remoteEnv": {
-        "WAKATIME_API_KEY": "${localEnv:WAKATIME_API_KEY}",
-        "UV_LINK_MODE": "copy"
+  "name": "Kanade",
+  "dockerComposeFile": "compose.yaml",
+  "service": "app",
+  "workspaceFolder": "/home/vscode/app",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "configureZshAsDefaultShell": true
     },
-    "features": {
-        "ghcr.io/devcontainers/features/git:1": {
-            "version": "2.52.0"
-        },
-        "ghcr.io/devcontainers/features/common-utils:2": {
-            "configureZshAsDefaultShell": true
-        },
-        "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {},
-        "ghcr.io/devcontainers-extra/features/fzf:1": {},
-        "ghcr.io/devcontainers-extra/features/ffmpeg-apt-get:1": {},
-        "ghcr.io/christophermacgown/devcontainer-features/direnv:1": {},
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
-            "moby": false
-        },
-        "ghcr.io/devcontainers/features/docker-in-docker:2": {
-            "moby": false
-        }
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers-extra/features/uv:1": {
+      "version": "latest"
     },
-    "postAttachCommand": "/bin/sh .devcontainer/postAttachCommand.sh",
-    "postCreateCommand": "/bin/sh .devcontainer/postCreateCommand.sh",
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "EditorConfig.EditorConfig",
-                "GitHub.copilot",
-                "GitHub.copilot-chat",
-                "PKief.material-icon-theme",
-                "antfu.file-nesting",
-                "bierner.markdown-mermaid",
-                "bierner.markdown-preview-github-styles",
-                "charliermarsh.ruff",
-                "eamodio.gitlens",
-                "jebbs.markdown-extended",
-                "ms-python.black-formatter",
-                "ms-python.python",
-                "pHofer94.vscode-taskviewexplorer",
-                "redhat.vscode-yaml",
-                "tamasfe.even-better-toml",
-                "vsls-contrib.gitdoc"
-            ],
-            "settings": {}
-        }
+    "ghcr.io/devcontainers-extra/features/ffmpeg-apt-get:1": {},
+    "ghcr.io/stu-bell/devcontainer-features/claude-code:0": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": "false"
+    },
+    "ghcr.io/devcontainers-extra/features/act:1": {
+      "version": "latest"
     }
+  },
+  "postAttachCommand": "/bin/zsh .devcontainer/postAttachCommand.sh",
+  "postCreateCommand": "/bin/zsh .devcontainer/postCreateCommand.sh",
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"
+  },
+  "mounts": [
+    "source=${env:HOME}/.aws,target=/home/vscode/.aws,type=bind,consistency=cached,readonly",
+    "source=${env:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached",
+    "source=${env:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached,readonly",
+    "source=${env:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,consistency=cached"
+  ],
+  "remoteEnv": {
+    "ANTHROPIC_BASE_URL": "${localEnv:ANTHROPIC_BASE_URL}",
+    "ANTHROPIC_AUTH_TOKEN": "${localEnv:ANTHROPIC_AUTH_TOKEN}",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "UV_LINK_MODE": "copy",
+    "WAKATIME_API_KEY": "${localEnv:WAKATIME_API_KEY}"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "EditorConfig.EditorConfig",
+        "PKief.material-icon-theme",
+        "antfu.file-nesting",
+        "charliermarsh.ruff",
+        "editorconfig.editorconfig",
+        "esbenp.prettier-vscode",
+        "github.vscode-github-actions",
+        "ms-python.black-formatter",
+        "ms-python.debugpy",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "tamasfe.even-better-toml"
+      ]
+    }
+  }
 }
