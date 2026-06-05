@@ -8,7 +8,7 @@ dependencies = [
     "bullmq>=2.0.0",
     "flask>=3.0.0",
     "flask-cors>=5.0.0",
-    "gamdl>=2.9.2",
+    "gamdl>=3.7.3",
     "gunicorn>=23.0.0",
 ]
 
