@@ -16,6 +16,7 @@
 # ============================================================
 
 ARG PYTHON_VERSION=3.12
+ARG BASE_IMAGE=slim-bookworm
 ARG DOTNET_VERSION=10.0
 
 # ------------------------------------------------------------------
@@ -70,7 +71,7 @@ RUN go mod tidy && go build -o /out/amdecrypt main.go
 # ------------------------------------------------------------------
 # Stage 3: Build mp4decrypt (Bento4)
 # ------------------------------------------------------------------
-FROM python:${PYTHON_VERSION}-slim AS build-bento4
+FROM python:${PYTHON_VERSION}-${BASE_IMAGE} AS build-bento4
 
 # pinning apt versions across rolling Debian bases is unmaintainable
 # hadolint ignore=DL3008
@@ -91,7 +92,7 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release .. && \
 # ------------------------------------------------------------------
 # Stage 4: Build MP4Box (GPAC)
 # ------------------------------------------------------------------
-FROM python:${PYTHON_VERSION}-slim AS build-gpac
+FROM python:${PYTHON_VERSION}-${BASE_IMAGE} AS build-gpac
 
 # pinning apt versions across rolling Debian bases is unmaintainable
 # hadolint ignore=DL3008
@@ -112,7 +113,7 @@ RUN ./configure --static-bin && \
 # ------------------------------------------------------------------
 # Stage 5: Install Python dependencies
 # ------------------------------------------------------------------
-FROM python:${PYTHON_VERSION}-slim AS build-python
+FROM python:${PYTHON_VERSION}-${BASE_IMAGE} AS build-python
 
 WORKDIR /build
 
@@ -123,7 +124,7 @@ RUN pip install --no-cache-dir --prefix=/install .
 # ------------------------------------------------------------------
 # Stage 6: Final runtime image
 # ------------------------------------------------------------------
-FROM python:${PYTHON_VERSION}-slim
+FROM python:${PYTHON_VERSION}-${BASE_IMAGE}
 
 # ffmpeg is needed by gamdl / yt-dlp for remuxing
 # pinning apt versions across rolling Debian bases is unmaintainable
