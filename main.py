@@ -8,6 +8,9 @@ from multiprocessing import Process
 
 def start_api():
     """Flask API サーバーを起動"""
+    from kanade.db import ensure_schema
+
+    ensure_schema()
     script_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kanade")
 
     if os.getenv("ENV") == "production":
@@ -33,8 +36,10 @@ def start_api():
 
 def start_worker():
     """BullMQ ワーカーを起動"""
+    from kanade.db import ensure_schema
     from kanade.worker import main as worker_main
 
+    ensure_schema()
     asyncio.run(worker_main())
 
 

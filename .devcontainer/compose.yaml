@@ -8,8 +8,11 @@ services:
       - venv:/home/vscode/app/.venv
     environment:
       REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://kanade:kanade@postgres:5432/kanade
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     ports:
       - 15100:5000
@@ -39,6 +42,21 @@ services:
       retries: 5
     restart: unless-stopped
 
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: kanade
+      POSTGRES_PASSWORD: kanade
+      POSTGRES_DB: kanade
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U kanade -d kanade" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   wrapper:
     image: tkgling/wrapper:latest
     volumes:
@@ -53,6 +71,9 @@ volumes:
     driver: local
   redis_data:
     name: redis_data_bullmq
+    driver: local
+  postgres_data:
+    name: postgres_data_kanade_devcontainer
     driver: local
   rootfs:
     name: rootfs

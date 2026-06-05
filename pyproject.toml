@@ -10,6 +10,7 @@ dependencies = [
     "flask-cors>=5.0.0",
     "gamdl>=3.7.3",
     "gunicorn>=23.0.0",
+    "psycopg[binary]>=3.2.0",
 ]
 
 [dependency-groups]

@@ -10,6 +10,21 @@ services:
       retries: 5
     restart: unless-stopped
 
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: kanade
+      POSTGRES_PASSWORD: kanade
+      POSTGRES_DB: kanade
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U kanade -d kanade" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   kanade:
     build:
       context: .
@@ -20,6 +35,7 @@ services:
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      DATABASE_URL: postgresql://kanade:kanade@postgres:5432/kanade
       ENV: development
     volumes:
       - ./cookies.txt:/app/cookies.txt:ro
@@ -27,6 +43,8 @@ services:
       - ./content:/app/content
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
 
   dashboard:
@@ -54,6 +72,7 @@ services:
 
 volumes:
   redis_data:
+  postgres_data:
   rootfs:
     driver: local
     name: rootfs

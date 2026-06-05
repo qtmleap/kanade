@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 from bullmq import Worker
+from kanade.db import mark_downloaded
 from kanade.tasks import run_gamdl
 
 # ANSI カラーコードを除去する正規表現
@@ -38,6 +39,16 @@ async def handler(job, token):
             if clean:
                 print(f"{prefix} {clean}", flush=True)
                 await job.log(clean)
+
+        media_type = job.data.get("media_type")
+        media_id = job.data.get("media_id")
+        if media_type is not None and media_id is not None:
+            mark_downloaded(media_type, int(media_id), url)
+            await job.log(f"Marked {media_type}:{media_id} as downloaded")
+        else:
+            await job.log(
+                "Skipping download mark because media_type/media_id are missing"
+            )
 
         print(f"{prefix} Completed successfully", flush=True)
         await job.log("Completed successfully")

@@ -4,6 +4,8 @@ from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from bullmq import Queue
 
+from kanade.db import is_downloaded
+
 app = Flask(__name__)
 CORS(app)
 
@@ -46,7 +48,7 @@ OPENAPI_SPEC = {
                                             "overwrite": {
                                                 "type": "boolean",
                                                 "default": False,
-                                                "description": "Overwrite existing files",
+                                                "description": "Overwrite existing files and bypass the duplicate-skip check",
                                             }
                                         },
                                     },
@@ -57,20 +59,53 @@ OPENAPI_SPEC = {
                 },
                 "responses": {
                     "200": {
-                        "description": "Job created successfully",
+                        "description": "Job created, or skipped because the target is already downloaded",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "id": {"type": "string"},
-                                        "name": {"type": "string"},
-                                        "data": {
+                                    "oneOf": [
+                                        {
                                             "type": "object",
-                                            "properties": {"url": {"type": "string"}},
+                                            "properties": {
+                                                "id": {"type": "string"},
+                                                "name": {"type": "string"},
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "url": {"type": "string"},
+                                                        "media_type": {
+                                                            "type": "string",
+                                                            "enum": ["album", "artist"],
+                                                        },
+                                                        "media_id": {"type": "integer"},
+                                                        "overwrite": {
+                                                            "type": "boolean"
+                                                        },
+                                                    },
+                                                },
+                                                "timestamp": {"type": "integer"},
+                                            },
                                         },
-                                        "timestamp": {"type": "integer"},
-                                    },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "skipped",
+                                                },
+                                                "reason": {
+                                                    "type": "string",
+                                                    "example": "already downloaded",
+                                                },
+                                                "media_type": {
+                                                    "type": "string",
+                                                    "enum": ["album", "artist"],
+                                                },
+                                                "media_id": {"type": "integer"},
+                                                "url": {"type": "string"},
+                                            },
+                                        },
+                                    ]
                                 }
                             }
                         },
@@ -202,7 +237,27 @@ def create_job():
         overwrite = bool(overwrite)
 
     url = f"https://music.apple.com/jp/{media_type}/{media_id}"
-    job_info = enqueue("process", {"url": url})
+
+    if not overwrite and is_downloaded(media_type, media_id):
+        return jsonify(
+            {
+                "status": "skipped",
+                "reason": "already downloaded",
+                "media_type": media_type,
+                "media_id": media_id,
+                "url": url,
+            }
+        )
+
+    job_info = enqueue(
+        "process",
+        {
+            "url": url,
+            "media_type": media_type,
+            "media_id": media_id,
+            "overwrite": overwrite,
+        },
+    )
     return jsonify(job_info)
 
 
