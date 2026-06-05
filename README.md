@@ -42,26 +42,29 @@ ensure the PostgreSQL `downloads` table exists, so a reachable `DATABASE_URL` is
 
 ### Configuration
 
-Place a `config.ini` in the project root for gamdl settings. The decryption wrapper and
-artist auto-selection are the important Kanade-specific knobs:
+Kanade ships two annotated templates. Copy them and edit in place — both `config.ini` and
+`.env` are gitignored so your local edits stay out of version control.
 
-```ini
-[gamdl]
-output_path = ./content
-download_mode = nm3u8dlre
-song_codec_piority = alac
-artist_auto_select = all-albums
-use_wrapper = true
-wrapper_url = http://wrapper:80
+```bash
+cp config.example.ini config.ini   # gamdl + wrapper options
+cp .env.example .env               # wrapper-v2 Apple ID for the compose stack
 ```
 
-- `use_wrapper` / `wrapper_url` — route account, playback and decryption through wrapper-v2.
+The Kanade-specific knobs worth knowing about:
+
+- `use_wrapper` / `wrapper_url` — route account, playback and decryption through wrapper-v2
+  (required for ALAC / lossless without a local `.wvd` file).
 - `artist_auto_select = all-albums` — required so artist URLs resolve non-interactively in
-  the worker (otherwise gamdl raises an interactive prompt that hangs the queue). Valid
+  the worker. Without it gamdl raises an interactive prompt that hangs the queue. Valid
   values: `main-albums`, `compilation-albums`, `live-albums`, `singles-eps`, `all-albums`,
   `top-songs`, `music-videos`.
+- `cookies_path` — Netscape-format cookies exported from a logged-in Apple Music web
+  session. The [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc)
+  Chrome extension works; export from `music.apple.com` and drop the file at the path
+  configured here (`./cookies.txt` by default, mounted read-only into the container).
 
-See [gamdl documentation](https://github.com/glomatico/gamdl) for all available options.
+[`config.example.ini`](./config.example.ini) documents every supported key inline. See
+also the [gamdl documentation](https://github.com/glomatico/gamdl) for upstream details.
 
 ### Environment Variables
 
@@ -71,6 +74,8 @@ See [gamdl documentation](https://github.com/glomatico/gamdl) for all available 
 | `REDIS_PORT` | `6379` | Redis port |
 | `DATABASE_URL` | — | PostgreSQL DSN, e.g. `postgresql://kanade:kanade@postgres:5432/kanade` (required) |
 | `ENV` | — | Set to `production` to use gunicorn |
+| `USERNAME` | — | Apple ID for the wrapper-v2 sidecar (compose only; read from `.env`) |
+| `PASSWORD` | — | App-specific password for `USERNAME` (compose only; read from `.env`) |
 
 ## API
 

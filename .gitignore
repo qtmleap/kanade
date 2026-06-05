@@ -281,7 +281,11 @@ devices/**/*.wvd
 # Cookies
 **/cookies.txt
 
-# User config
+# User config (kept locally, templates committed as *.example)
+config.ini
+!config.example.ini
+.env
+!.env.example
 config.yaml.*
 !config.yaml.example
 
