@@ -1,94 +1,91 @@
 name: Integration
-
 on:
   push:
-    branches:
+    branches-ignore:
+      - main
       - master
-      - develop
   pull_request:
-    branches:
-      - master
-      - develop
-  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  lint-actions:
-    name: actionlint
+  commitlint:
+    name: Commit Lint
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    if: github.event.action != 'closed' || github.event.pull_request.merged != true
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Run actionlint
-        uses: rhysd/actionlint@v1.7.12
-
-  lint-dockerfile:
-    name: hadolint
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        dockerfile:
-          - Dockerfile
-          - .devcontainer/Dockerfile
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Run hadolint on ${{ matrix.dockerfile }}
-        uses: hadolint/hadolint-action@v3.3.0
+      - uses: actions/checkout@v5
         with:
-          dockerfile: ${{ matrix.dockerfile }}
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Cache Bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lock', '**/package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      - name: Install commitlint
+        run: |
+          bun install conventional-changelog-conventionalcommits
+          bun install @commitlint/config-conventional@latest
+          bun install commitlint@latest
+      - name: Validate PR commits
+        if: github.event_name == 'pull_request'
+        run: |
+          bunx commitlint \
+            --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} \
+            --to ${{ github.event.pull_request.head.sha }} \
+            --verbose
+      - name: Validate last commit
+        if: github.event_name == 'push'
+        run: bunx commitlint --last --verbose
 
-  lint-python:
-    name: uv + ruff
+  ruff:
+    name: Ruff
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v8.2.0
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+      - name: Ruff check
+        run: uvx ruff check
+      - name: Ruff format check
+        run: uvx ruff format --check
 
-      - name: Sync project (lockfile check)
-        run: uv sync --frozen
-
-      - name: Format check (ruff)
-        run: uvx ruff format --check .
-
-      - name: Lint (ruff)
-        run: uvx ruff check .
-
-  build-smoke:
-    name: docker build smoke (no push)
+  typecheck:
+    name: mypy
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build image (linux/amd64, no push)
-        uses: docker/build-push-action@v7
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
         with:
-          context: .
-          platforms: linux/amd64
-          push: false
-          load: true
-          tags: gamdl:ci
-          cache-from: type=gha,scope=smoke
-          cache-to: type=gha,mode=max,scope=smoke
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --frozen
+      # Uncomment when the project uses Prisma (or similar codegen).
+      # - name: Generate Prisma client
+      #   run: uv run prisma generate
+      - name: mypy
+        run: uv run mypy .
+
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --frozen
+      # Uncomment when the project uses Prisma (or similar codegen).
+      # - name: Generate Prisma client
+      #   run: uv run prisma generate
+      - name: pytest
+        run: uv run pytest
