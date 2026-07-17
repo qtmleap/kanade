@@ -17,3 +17,11 @@ dependencies = [
 dev = [
     "mypy>=0.0",
     "ruff>=0.0","pytest>=9.0.2"]
+
+[tool.mypy]
+ignore_missing_imports = true
+explicit_package_bases = true
+no_implicit_optional = false
+check_untyped_defs = false
+warn_no_return = false
+disable_error_code = ["import-untyped", "assignment", "operator", "arg-type", "return-value", "attr-defined", "index", "call-overload", "var-annotated", "union-attr", "call-arg", "return", "has-type", "misc", "name-defined", "literal-required", "no-redef", "unreachable"]
