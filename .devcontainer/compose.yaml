@@ -4,77 +4,15 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ../:/home/vscode/app:cached
       - venv:/home/vscode/app/.venv
+      - uv-cache:/home/vscode/.cache/uv
+      - ../:/home/vscode/app:cached
     environment:
-      REDIS_URL: redis://redis:6379
-      DATABASE_URL: postgresql://kanade:kanade@postgres:5432/kanade
-    depends_on:
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-    ports:
-      - 15100:5000
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
     tty: true
     stdin_open: true
 
-  dashboard:
-    image: venatum/bull-board:latest
-    environment:
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-    ports:
-      - 13100:3000
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-
-  redis:
-    image: redis:8.4.0
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    restart: unless-stopped
-
-  postgres:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_USER: kanade
-      POSTGRES_PASSWORD: kanade
-      POSTGRES_DB: kanade
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U kanade -d kanade" ]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    restart: unless-stopped
-
-  wrapper:
-    image: tkgling/wrapper:latest
-    volumes:
-      - rootfs:/app/rootfs
-    environment:
-      USERNAME: $USERNAME
-      PASSWORD: $PASSWORD
-    restart: unless-stopped
-
 volumes:
   venv:
-    driver: local
-  redis_data:
-    name: redis_data_bullmq
-    driver: local
-  postgres_data:
-    name: postgres_data_kanade_devcontainer
-    driver: local
-  rootfs:
-    name: rootfs
-    driver: local
+  uv-cache:

@@ -1,56 +1,137 @@
 {
-    "debug.internalConsoleOptions": "neverOpen",
-    "diffEditor.diffAlgorithm": "advanced",
-    "diffEditor.experimental.showMoves": true,
-    "diffEditor.renderSideBySide": false,
-    "editor.formatOnPaste": true,
+  "debug.internalConsoleOptions": "neverOpen",
+  "diffEditor.diffAlgorithm": "advanced",
+  "diffEditor.experimental.showMoves": true,
+  "diffEditor.renderSideBySide": true,
+  "editor.formatOnPaste": false,
+  "editor.formatOnSave": true,
+  "editor.guides.bracketPairs": "active",
+  "editor.codeActionsOnSave": {},
+  "files.exclude": {
+    "**/.venv": true,
+    "**/.ruff_cache": true,
+    "**/.mypy_cache": true,
+    "**/.pytest_cache": true,
+    "**/__pycache__": true,
+    "**.venv.ruff_cache.mypy_cache.pytest_cache__pycache__.venv": true,
+    "**/*.pyc": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/.git": true,
+    "**/node_modules": true,
+    "**.pytest_cache": true,
+    "**/target": true,
+    "**/dist": true,
+    "**/.next": true,
+    "**/.nuxt": true,
+    "**/.svelte-kit": true,
+    "**/.turbo": true,
+    "**/.wrangler": true,
+    "**/.cache": true,
+    "**/.parcel-cache": true,
+    "**/coverage": true,
+    "**/.nyc_output": true,
+    "**/.tanstack": true
+  },
+  "scm.defaultViewMode": "tree",
+  "python.languageServer": "Pylance",
+  "python.formatting.provider": "black",
+  "python.linting.flake8Enabled": true,
+  "python.linting.flake8Args": [
+    "--max-line-length 119"
+  ],
+  "python.linting.mypyEnabled": true,
+  "python.linting.banditEnabled": true,
+  "python.analysis.completeFunctionParens": true,
+  "python.analysis.logLevel": "Warning",
+  "python.analysis.memory.keepLibraryAst": true,
+  "python.autoComplete.addBrackets": true,
+  "python.diagnostics.sourceMapsEnabled": true,
+  "python.insidersChannel": "daily",
+  "pylance.insidersChannel": "daily",
+  "python.testing.pytestEnabled": true,
+  "python.terminal.activateEnvInCurrentTerminal": false,
+  "python.terminal.activateEnvironment": false,
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
-    "editor.guides.bracketPairs": "active",
-    "editor.codeActionsOnSave": {},
-    "files.exclude": {
-        "**/.venv": true,
-        "**/.ruff_cache": true,
-        "**/.mypy_cache": true,
-        "**/.pytest_cache": true,
-        "**/__pycache__": true,
-        "**/*.pyc": true
-    },
-    "files.watcherExclude": {
-        "**/.venv/**": true,
-        "**/.ruff_cache/**": true,
-        "**/.mypy_cache/**": true,
-        "**/.pytest_cache/**": true,
-        "**/__pycache__/**": true
-    },
-    "search.exclude": {
-        "**/.venv": true,
-        "**/.ruff_cache": true,
-        "**/.mypy_cache": true,
-        "**/.pytest_cache": true,
-        "**/__pycache__": true,
-        "**/*.pyc": true
-    },
-    "scm.defaultViewMode": "tree",
-    "python.languageServer": "Pylance",
-    "python.formatting.provider": "black",
-    "python.linting.flake8Enabled": true,
-    "python.linting.flake8Args": [
-        "--max-line-length 119"
-    ],
-    "python.linting.mypyEnabled": true,
-    "python.linting.banditEnabled": true,
-    "python.analysis.completeFunctionParens": true,
-    "python.analysis.logLevel": "Warning",
-    "python.analysis.memory.keepLibraryAst": true,
-    "python.autoComplete.addBrackets": true,
-    "python.diagnostics.sourceMapsEnabled": true,
-    "python.insidersChannel": "daily",
-    "pylance.insidersChannel": "daily",
-    "python.testing.pytestEnabled": true,
-    "python.terminal.activateEnvInCurrentTerminal": false,
-    "python.terminal.activateEnvironment": false,
-    "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter",
-        "editor.formatOnSave": true
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
     }
+  },
+  "editor.tabSize": 2,
+  "editor.rulers": [
+    100,
+    120
+  ],
+  "editor.renderWhitespace": "boundary",
+  "editor.stickyScroll.enabled": true,
+  "editor.inlineSuggest.enabled": true,
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "files.trimFinalNewlines": true,
+  "files.autoSave": "onFocusChange",
+  "files.watcherExclude": {
+    "**/.git/objectsnode_modules.venvtargetdist.next.wranglernode_modules": true,
+    "**/dist": true,
+    "**/target": true,
+    "**/.venv": true,
+    "**/coverage": true,
+    "**routeTree.gen.ts": true,
+    "**/bun.lock": true,
+    "**/package-lock.json": true,
+    "**/pnpm-lock.yaml": true,
+    "**/yarn.lock": true,
+    "**/uv.lock": true,
+    "**/poetry.lock": true,
+    "**/Cargo.lock": true
+  },
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "package.json": "package-lock.json, pnpm-lock.yaml, yarn.lock, bun.lock, bun.lockb, .npmrc, .nvmrc, .node-version, tsconfig*.json, biome.json, .biomeignore, .prettier*, .eslintrc*, vite.config*, vitest.config*, wrangler.toml, wrangler.jsonc",
+    "pyproject.toml": "uv.lock, poetry.lock, requirements*.txt, .python-version, ruff.toml, .ruff.toml, mypy.ini",
+    "Cargo.toml": "Cargo.lock, rust-toolchain*, rustfmt.toml, .cargo/config.toml",
+    "Package.swift": "Package.resolved, .swift-version, .swiftformat",
+    "Dockerfile": "compose.yaml, compose.*.yaml, docker-compose.yml, docker-compose.*.yml, .dockerignore",
+    ".gitignore": ".gitattributes",
+    "README.md": "CHANGELOG.md, LICENSE*, CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md, AUTHORS*",
+    "*.ts": "$(capture).test.ts, $(capture).spec.ts, $(capture).d.ts",
+    "*.tsx": "$(capture).test.tsx, $(capture).spec.tsx, $(capture).module.css"
+  },
+  "diffEditor.ignoreTrimWhitespace": false,
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.pruneOnFetch": true,
+  "git.branchProtection": [
+    "main",
+    "master",
+    "develop"
+  ],
+  "terminal.integrated.scrollback": 10000,
+  "terminal.integrated.defaultProfile.linux": "zsh",
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "[markdown]": {
+    "editor.formatOnSave": false,
+    "files.trimTrailingWhitespace": false
+  },
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml"
+  },
+  "python.defaultInterpreterPath": "/home/vscode/app/.venv/bin/python",
+  "python.testing.unittestEnabled": false,
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.autoImportCompletions": true,
+  "ruff.importStrategy": "fromEnvironment",
+  "ruff.nativeServer": "on"
 }
