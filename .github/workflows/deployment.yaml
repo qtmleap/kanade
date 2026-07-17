@@ -1,15 +1,15 @@
-name: Build and Push Docker Image
-
+name: Build & Push Image
 on:
-  push:
-    tags:
-      - 'v*'
+  pull_request:
+    branches:
+      - master
+      - main
+    types: [closed]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag (e.g., v3.7.3)'
-        required: true
-        type: string
+
+permissions:
+  contents: read
+  packages: write
 
 env:
   REGISTRY: ghcr.io
@@ -17,42 +17,20 @@ env:
 
 jobs:
   build:
+    name: Build & Push
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    strategy:
-      fail-fast: false
-      matrix:
-        python_version: ['3.12', '3.14']
-        base_image: ['slim-bookworm', 'slim-trixie']
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v5
 
-      - name: Extract version from tag
-        id: version
+      - name: Read version from pyproject.toml
+        id: pkg
         run: |
-          # workflow_dispatch なら入力値、それ以外は ref のタグ
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ github.event.inputs.tag }}"
-          else
-            TAG=${GITHUB_REF#refs/tags/}
-          fi
-          # v プレフィックスを外す (例: v3.7.3 -> 3.7.3)
-          VERSION=${TAG#v}
-          echo "gamdl_version=${VERSION}" >> "$GITHUB_OUTPUT"
+          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -60,25 +38,21 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # default matrix (3.12-slim-bookworm) のときだけ latest も付与
-            type=raw,value=latest,enable=${{ matrix.python_version == '3.12' && matrix.base_image == 'slim-bookworm' }}
-            # gamdl version + python version + base image
-            type=raw,value=${{ steps.version.outputs.gamdl_version }}-${{ matrix.python_version }}-${{ matrix.base_image }}
+            type=raw,value=${{ steps.pkg.outputs.version }}
+            type=raw,value=v${{ steps.pkg.outputs.version }}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-,format=short
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v7
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            PYTHON_VERSION=${{ matrix.python_version }}
-            BASE_IMAGE=${{ matrix.base_image }}
-          cache-from: type=gha,scope=${{ matrix.python_version }}-${{ matrix.base_image }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.python_version }}-${{ matrix.base_image }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
