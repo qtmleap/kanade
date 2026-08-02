@@ -8,6 +8,7 @@
   "shutdownAction": "stopCompose",
   "remoteUser": "vscode",
   "remoteEnv": {
+    "WAKATIME_API_KEY": "${localEnv:WAKATIME_API_KEY}",
     "ANTHROPIC_BASE_URL": "${localEnv:ANTHROPIC_BASE_URL}",
     "ANTHROPIC_AUTH_TOKEN": "${localEnv:ANTHROPIC_AUTH_TOKEN}"
   },
@@ -51,6 +52,7 @@
       "extensions": [
         "EditorConfig.EditorConfig",
         "PKief.material-icon-theme",
+        "WakaTime.vscode-wakatime",
         "antfu.file-nesting",
         "bierner.github-markdown-preview",
         "bierner.markdown-preview-github-styles",
