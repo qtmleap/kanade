@@ -2,7 +2,9 @@ import asyncio
 import os
 import re
 import subprocess
+
 from bullmq import Worker
+
 from kanade.db import mark_downloaded
 from kanade.tasks import run_gamdl
 
@@ -58,12 +60,12 @@ async def handler(job, token):
         msg = f"Failed with exit code {e.returncode}"
         print(f"{prefix} {msg}", flush=True)
         await job.log(msg)
-        raise e
+        raise
     except Exception as e:
-        msg = f"Error: {str(e)}"
+        msg = f"Error: {e!s}"
         print(f"{prefix} {msg}", flush=True)
         await job.log(msg)
-        raise e
+        raise
 
 
 async def main():
