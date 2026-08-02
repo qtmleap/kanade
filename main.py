@@ -26,7 +26,8 @@ def start_api():
                 "--chdir",
                 script_dir,
                 "app:app",
-            ]
+            ],
+            check=False,
         )
     else:
         from kanade.app import app
