@@ -1,7 +1,10 @@
 #!/bin/zsh
 set -e
 
-sudo chown -R $(whoami):$(whoami) .venv 2>/dev/null || true
+# Docker creates a named volume root-owned unless the image already has the
+# directory it mounts over, and the base image has neither of these — so both
+# the venv and the uv cache arrive unwritable for the remote user.
+sudo chown -R $(whoami):$(whoami) .venv ~/.cache/uv 2>/dev/null || true
 
 # Silence direnv output.
 # In direnv 2.36+, DIRENV_LOG_FORMAT env var is ignored unless direnv.toml exists.
