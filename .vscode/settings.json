@@ -112,6 +112,10 @@
   ],
   "terminal.integrated.scrollback": 10000,
   "terminal.integrated.defaultProfile.linux": "zsh",
+  // tasks.json cannot say where its terminal opens, so the start-agents task lands
+  // wherever this points. The editor area gives the three tmux panes enough room.
+  // Applies to every terminal in the workspace, not just the task.
+  "terminal.integrated.defaultLocation": "editor",
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features"
   },

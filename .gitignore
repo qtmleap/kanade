@@ -267,6 +267,13 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/python,venv,dotenv,direnv,windows,macos,linux
 
+# === Agents ===
+# .claude/ stays tracked here: this repository keeps its own skills and hooks.
+.codex/
+# The venv recipe above ignores [Ss]cripts (the Windows virtualenv bin dir),
+# which would swallow the agent tooling at the repository root. Take it back.
+!/scripts/
+
 # Cached content (large media & metadata)
 content/**/*.mkv
 content/**/*.mp4
