@@ -1,5 +1,5 @@
 {
-  "name": "Python (uv)",
+  "name": "Kanade",
   "dockerComposeFile": [
     "compose.yaml"
   ],
@@ -8,21 +8,33 @@
   "shutdownAction": "stopCompose",
   "remoteUser": "vscode",
   "remoteEnv": {
-    "WAKATIME_API_KEY": "${localEnv:WAKATIME_API_KEY}",
     "ANTHROPIC_BASE_URL": "${localEnv:ANTHROPIC_BASE_URL}",
-    "ANTHROPIC_AUTH_TOKEN": "${localEnv:ANTHROPIC_AUTH_TOKEN}"
+    "ANTHROPIC_AUTH_TOKEN": "${localEnv:ANTHROPIC_AUTH_TOKEN}",
+    "WAKATIME_API_KEY": "${localEnv:WAKATIME_API_KEY}",
+    "OPENAI_API_KEY": "${localEnv:OPENAI_API_KEY}",
+    "OPENAI_BASE_URL": "${localEnv:OPENAI_BASE_URL}",
+    "AGENTS_SESSION": "${localWorkspaceFolderBasename}"
   },
   "containerEnv": {
+    "CLAUDE_CODE_AUTO_MODE_SERVER": "0",
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
     "UV_LINK_MODE": "copy",
     "UV_PROJECT_ENVIRONMENT": "/home/vscode/app/.venv",
-    "VIRTUAL_ENV_DISABLE_PROMPT": "1"
+    "VIRTUAL_ENV_DISABLE_PROMPT": "1",
+    "CODEX_HOME": "/home/vscode/.codex",
+    "CODEX_MODEL": "${localEnv:CODEX_MODEL}",
+    // Leave these host variables unset to use the launcher's Sonnet / Opus /
+    // Sonnet defaults. Forwarding them makes per-machine experiments persistent.
+    "ORCHESTRATOR_MODEL": "${localEnv:ORCHESTRATOR_MODEL}",
+    "IMPLEMENTER_MODEL": "${localEnv:IMPLEMENTER_MODEL}",
+    "REVIEWER_MODEL": "${localEnv:REVIEWER_MODEL}"
   },
   "mounts": [
-    "source=${env:HOME}/.aws,target=/home/vscode/.aws,type=bind,consistency=cached,readonly",
-    "source=${env:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached",
-    "source=${env:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached,readonly",
-    "source=${env:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,consistency=cached,readonly"
+    "source=${localEnv:HOME}/.aws,target=/home/vscode/.aws,type=bind,consistency=cached,readonly",
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached,readonly",
+    "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,consistency=cached,readonly"
   ],
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
@@ -35,6 +47,11 @@
     "ghcr.io/stu-bell/devcontainer-features/claude-code:0": {
       "version": "latest"
     },
+    "ghcr.io/thamaji/devcontainer-features/codex-cli:1": {
+      "VERSION": "latest"
+    },
+    "ghcr.io/jsburckhardt/devcontainer-features/tmux:2": {},
+    "ghcr.io/shyim/devcontainers-features/bun:0": {},
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
       "moby": false,
       "dockerDashComposeVersion": "v2"
@@ -45,6 +62,13 @@
       "packages": "git-filter-repo"
     }
   },
+  // The codex-cli feature's postCreateCommand ends by deleting itself, but
+  // it sits in a root-owned directory while lifecycle commands run as vscode
+  // — so the `rm` fails, `set -e` aborts it, and the CLI then skips every
+  // remaining user command, including the two below. onCreate runs a phase
+  // earlier than any postCreate, so handing the directory over here lets the
+  // feature clean itself up.
+  "onCreateCommand": "sudo chown \"$(id -un)\" /usr/local/codex-cli 2>/dev/null || true",
   "postAttachCommand": "/bin/sh .devcontainer/postAttachCommand.sh",
   "postCreateCommand": "/bin/sh .devcontainer/postCreateCommand.sh",
   "customizations": {
@@ -57,14 +81,13 @@
         "bierner.github-markdown-preview",
         "bierner.markdown-preview-github-styles",
         "charliermarsh.ruff",
+        "ms-python.debugpy",
+        "ms-python.mypy-type-checker",
         "ms-python.python",
         "ms-python.vscode-pylance",
-        "ms-python.mypy-type-checker",
-        "ms-python.debugpy",
         "redhat.vscode-yaml",
         "tamasfe.even-better-toml"
-      ],
-      "settings": {}
+      ]
     }
   }
 }
