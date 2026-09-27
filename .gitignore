@@ -269,6 +269,8 @@ $RECYCLE.BIN/
 
 # === Agents ===
 # .claude/ stays tracked here: this repository keeps its own skills and hooks.
+# Per-user Claude Code settings are local-only.
+.claude/settings.local.json
 .codex/
 # The venv recipe above ignores [Ss]cripts (the Windows virtualenv bin dir),
 # which would swallow the agent tooling at the repository root. Take it back.
