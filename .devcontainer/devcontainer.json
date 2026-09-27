@@ -1,6 +1,8 @@
 {
-  "name": "Python (uv)",
-  "dockerComposeFile": ["compose.yaml"],
+  "name": "Kanade",
+  "dockerComposeFile": [
+    "compose.yaml"
+  ],
   "service": "app",
   "workspaceFolder": "/home/vscode/app",
   "shutdownAction": "stopCompose",
@@ -14,6 +16,7 @@
     "AGENTS_SESSION": "${localWorkspaceFolderBasename}"
   },
   "containerEnv": {
+    "CLAUDE_CODE_AUTO_MODE_SERVER": "0",
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
     "UV_LINK_MODE": "copy",
     "UV_PROJECT_ENVIRONMENT": "/home/vscode/app/.venv",
