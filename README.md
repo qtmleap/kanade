@@ -17,51 +17,88 @@ graph LR
     Worker -->|mark downloaded| PG
 ```
 
-## Quick Start
+## Quick Start (Docker Compose)
 
-### Prerequisites
+The included `compose.yaml` wires Kanade together with Redis, PostgreSQL, Bull Board, and a
+wrapper-v2 sidecar — no host-side `uv` / Python / native deps required.
 
-- Python 3.12+
-- Redis
-- PostgreSQL
-- A running [wrapper-v2](https://github.com/glomatico/wrapper-v2) instance (authenticated with an Apple ID)
-- gamdl native dependencies: `N_m3u8DL-RE`, `mp4decrypt`, `MP4Box`, `amdecrypt`, `ffmpeg`
+### 1. Prerequisites
 
-### Run locally
+- Docker 24+ with the `compose` plugin
+- An active Apple Music subscription
+- A wrapper-v2 image whose Apple-library `rootfs` you have already populated. wrapper-v2
+  does **not** ship the Apple Music Android `.so` files; follow the
+  [upstream README](https://github.com/glomatico/wrapper-v2) to extract them from an
+  `.apk` / `.apkm` you provide, then point the `rootfs` volume in `compose.yaml` at the
+  resulting tree.
+
+### 2. Copy the templates
+
+Both `config.ini` and `.env` are gitignored so your local edits stay out of version control.
 
 ```bash
-# Install dependencies
-uv sync
-
-# Start the server (API + worker)
-uv run python main.py serve
+cp config.example.ini config.ini   # gamdl + wrapper options
+cp .env.example .env               # USERNAME / PASSWORD for the wrapper sidecar
 ```
 
-The API server starts on `http://localhost:5000`. On startup both the API and worker
-ensure the PostgreSQL `downloads` table exists, so a reachable `DATABASE_URL` is required.
+Edit `.env` and set `USERNAME` / `PASSWORD` to an Apple ID + **app-specific password**
+([account.apple.com](https://account.apple.com/) → Sign-In and Security → App-Specific
+Passwords). Compose forwards them into the wrapper container as `WRAPPER_USERNAME` /
+`WRAPPER_PASSWORD`; the sidecar signs in at startup and keeps a session cache in its
+volume.
 
-### Configuration
+### 3. (Optional) Provide cookies for non-wrapper paths
 
-Place a `config.ini` in the project root for gamdl settings. The decryption wrapper and
-artist auto-selection are the important Kanade-specific knobs:
+When `use_wrapper = true` (the default), gamdl skips cookies entirely and goes through the
+wrapper for everything. Cookies are only required if you want to disable the wrapper or
+hit certain web-codec paths. To export them, use the
+[Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc)
+Chrome extension on a logged-in `music.apple.com` tab and drop the file at `./cookies.txt`.
 
-```ini
-[gamdl]
-output_path = ./content
-download_mode = nm3u8dlre
-song_codec_piority = alac
-artist_auto_select = all-albums
-use_wrapper = true
-wrapper_url = http://wrapper:80
+### 4. Bring the stack up
+
+```bash
+docker compose up -d                 # starts kanade, redis, postgres, wrapper, dashboard
+docker compose logs -f kanade        # tail the API + worker
 ```
 
-- `use_wrapper` / `wrapper_url` — route account, playback and decryption through wrapper-v2.
+| URL | Service |
+|---|---|
+| <http://localhost:15100>        | Kanade API |
+| <http://localhost:15100/docs>   | Scalar API docs |
+| <http://localhost:13100>        | Bull Board (queue dashboard) |
+
+### 5. Queue a download
+
+```bash
+curl -X POST http://localhost:15100/api/queues \
+  -H "Content-Type: application/json" \
+  -d '{"album_id": 1869843536}'
+```
+
+See the [API section](#api) for the full request / response shape.
+
+## Configuration
+
+`config.example.ini` documents every supported key inline. The Kanade-specific knobs worth
+calling out:
+
+- `use_wrapper = true` / `wrapper_url = http://wrapper:80` — route account, playback, and
+  FairPlay decryption through the wrapper-v2 sidecar. Required for non-web codecs (ALAC,
+  Atmos, AAC, AC-3, …) — wrapper-v2 reuses the Apple Music Android runtime to do the
+  decryption that a `.wvd` Widevine device file can't.
 - `artist_auto_select = all-albums` — required so artist URLs resolve non-interactively in
-  the worker (otherwise gamdl raises an interactive prompt that hangs the queue). Valid
+  the worker. Without it gamdl raises an interactive prompt that hangs the queue. Valid
   values: `main-albums`, `compilation-albums`, `live-albums`, `singles-eps`, `all-albums`,
   `top-songs`, `music-videos`.
+- `song_codec_piority = alac` — note the upstream typo (`piority`, not `priority`). Common
+  values: `alac`, `aac`, `aac-he`, `aac-web`, `aac-he-web`, `atmos`, `ac3`, `ask`. Web
+  codecs work without the wrapper; everything else needs `use_wrapper = true`.
+- `download_mode = nm3u8dlre` — `nm3u8dlre` (default, fastest) or `ytdlp`. The Kanade
+  Docker image ships `N_m3u8DL-RE` on PATH so the default works out of the box.
 
-See [gamdl documentation](https://github.com/glomatico/gamdl) for all available options.
+See the [gamdl documentation](https://github.com/glomatico/gamdl) for the full option
+reference.
 
 ### Environment Variables
 
@@ -71,6 +108,8 @@ See [gamdl documentation](https://github.com/glomatico/gamdl) for all available 
 | `REDIS_PORT` | `6379` | Redis port |
 | `DATABASE_URL` | — | PostgreSQL DSN, e.g. `postgresql://kanade:kanade@postgres:5432/kanade` (required) |
 | `ENV` | — | Set to `production` to use gunicorn |
+| `USERNAME` | — | Apple ID forwarded to wrapper as `WRAPPER_USERNAME` (compose only; read from `.env`) |
+| `PASSWORD` | — | App-specific password forwarded to wrapper as `WRAPPER_PASSWORD` (compose only; read from `.env`) |
 
 ## API
 
@@ -83,12 +122,12 @@ Queue an album or an artist for download. Provide **exactly one** of `album_id` 
 
 ```bash
 # album
-curl -X POST http://localhost:5000/api/queues \
+curl -X POST http://localhost:15100/api/queues \
   -H "Content-Type: application/json" \
   -d '{"album_id": 1869843536}'
 
 # artist (downloads all albums, per artist_auto_select)
-curl -X POST http://localhost:5000/api/queues \
+curl -X POST http://localhost:15100/api/queues \
   -H "Content-Type: application/json" \
   -d '{"artist_id": 909253}'
 ```
@@ -144,15 +183,31 @@ Scalar API documentation UI.
 
 OpenAPI 3.1 specification.
 
-## Docker
+## Compose services
 
-### Build
+| Service | Host port → container | Description |
+|---|---|---|
+| `kanade` | 15100 → 5000 | Kanade API + worker |
+| `dashboard` | 13100 → 3000 | Bull Board (queue dashboard) |
+| `redis` | — (internal) | BullMQ queue backend |
+| `postgres` | — (internal) | Duplicate-skip store (`kanade` / `kanade` / `kanade`) |
+| `wrapper` | — (internal, `:80`) | wrapper-v2 (Apple Music auth + FairPlay decryption) |
 
-```bash
-docker buildx build -t kanade .
-```
+The `wrapper` service mounts a Docker volume named `rootfs` at `/app/rootfs`. Populate it
+out-of-band with the Apple-library tree wrapper-v2 expects — see the
+[wrapper-v2 README](https://github.com/glomatico/wrapper-v2) for the `extract-libs.sh` /
+`stage-system.sh` workflow.
 
-### Run
+## Running without Compose
+
+If you'd rather run Kanade against your own Redis / PostgreSQL / wrapper-v2, the published
+image at `ghcr.io/qtmleap/kanade` (tagged on each `vX.Y.Z` release) handles the gamdl
+runtime — `N_m3u8DL-RE`, `mp4decrypt`, `MP4Box`, `amdecrypt`, and `ffmpeg` are all baked
+in. You provide:
+
+- A reachable wrapper-v2 instance whose URL goes into `wrapper_url`.
+- Redis (`REDIS_HOST` / `REDIS_PORT`).
+- PostgreSQL (`DATABASE_URL`).
 
 ```bash
 docker run --rm -it \
@@ -160,26 +215,25 @@ docker run --rm -it \
   -e DATABASE_URL=postgresql://kanade:kanade@postgres:5432/kanade \
   -v ./cookies.txt:/app/cookies.txt:ro \
   -v ./config.ini:/app/config.ini:ro \
+  -v ./content:/app/content \
   -p 5000:5000 \
-  kanade serve
+  ghcr.io/qtmleap/kanade:latest serve
 ```
 
-Pre-built images are published to `ghcr.io/qtmleap/kanade` on each `vX.Y.Z` tag.
+Or run from source (requires Python 3.12+, plus the gamdl native deps on PATH):
+
+```bash
+uv sync
+uv run python main.py serve
+```
+
+The API server starts on `http://localhost:5000`. Both the API and worker ensure the
+PostgreSQL `downloads` table exists on startup, so a reachable `DATABASE_URL` is required.
 
 ## Development
 
 The dev container includes all native dependencies pre-built. Open the project in VS Code
 with the Dev Containers extension.
-
-### Services (compose)
-
-| Service | Host port → container | Description |
-|---|---|---|
-| `kanade` / `app` | 15100 → 5000 | Kanade API + worker |
-| `dashboard` | 13100 → 3000 | Bull Board (queue dashboard) |
-| `redis` | 6379 | Redis queue backend |
-| `postgres` | 5432 (internal) | Duplicate-skip store |
-| `wrapper` | — | wrapper-v2 (Apple Music auth + decryption) |
 
 ### VS Code Tasks
 

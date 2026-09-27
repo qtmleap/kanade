@@ -1,8 +1,9 @@
 import asyncio
 import os
-from flask import Flask, request, jsonify, Response
-from flask_cors import CORS
+
 from bullmq import Queue
+from flask import Flask, Response, jsonify, request
+from flask_cors import CORS
 
 from kanade.db import is_downloaded
 
