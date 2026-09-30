@@ -300,3 +300,6 @@ config.yaml.*
 
 # Apple device rootfs (binaries, tzdata)
 rootfs/
+
+# Local Codex configuration, credentials, and session state.
+/.codex/
