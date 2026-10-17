@@ -15,6 +15,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  ci-change-scope:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci-change-scope.yaml
+    with:
+      doc-paths: '["AGENTS.md","CHANGELOG.md","CLAUDE.md","LICENSE","docs/development/ci-change-scope.md"]'
+      doc-prefixes: '[]'
+      runner: '["self-hosted","ubuntu-latest"]'
+
   lint-actions:
     name: actionlint
     runs-on: ubuntu-latest
@@ -71,21 +80,27 @@ jobs:
         run: uvx ruff check .
 
   build-smoke:
+    if: ${{ !cancelled() && (true) }}
+    needs: ["ci-change-scope"]
     name: docker build smoke (no push)
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON((needs['ci-change-scope'].result == 'success' && needs['ci-change-scope'].outputs.docs_only == 'true') && '["self-hosted","ubuntu-latest"]' || '"ubuntu-latest"') }}
     permissions:
       contents: read
     steps:
       - name: Checkout repository
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         uses: actions/checkout@v6
 
       - name: Set up QEMU
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         uses: docker/setup-buildx-action@v4
 
       - name: Build image (linux/amd64, no push)
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -96,6 +111,14 @@ jobs:
           cache-from: type=gha,scope=smoke
           cache-to: type=gha,mode=max,scope=smoke
 
+      - name: Docs-only exemption
+        if: ${{ needs['ci-change-scope'].result == 'success' && needs['ci-change-scope'].outputs.docs_only == 'true' }}
+        shell: bash
+        working-directory: .
+        env:
+          CI_CHANGE_REASON: ${{ needs['ci-change-scope'].outputs.reason }}
+        run: |
+          printf '%s\n' "$CI_CHANGE_REASON" >> "$GITHUB_STEP_SUMMARY"
   commitlint:
     name: Commit Lint
     runs-on: ubuntu-latest
@@ -131,33 +154,62 @@ jobs:
         run: bunx commitlint --last --verbose
 
   typecheck:
+    if: ${{ !cancelled() && (true) }}
+    needs: ["ci-change-scope"]
     name: mypy
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON((needs['ci-change-scope'].result == 'success' && needs['ci-change-scope'].outputs.docs_only == 'true') && '["self-hosted","ubuntu-latest"]' || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v5
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
       - uses: astral-sh/setup-uv@v6
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         with:
           enable-cache: true
       - name: Install dependencies
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         run: uv sync --frozen
       # Uncomment when the project uses Prisma (or similar codegen).
       # - name: Generate Prisma client
       #   run: uv run prisma generate
       - name: mypy
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         run: uv run mypy .
 
+      - name: Docs-only exemption
+        if: ${{ needs['ci-change-scope'].result == 'success' && needs['ci-change-scope'].outputs.docs_only == 'true' }}
+        shell: bash
+        working-directory: .
+        env:
+          CI_CHANGE_REASON: ${{ needs['ci-change-scope'].outputs.reason }}
+        run: |
+          printf '%s\n' "$CI_CHANGE_REASON" >> "$GITHUB_STEP_SUMMARY"
   test:
+    if: ${{ !cancelled() && (true) }}
+    needs: ["ci-change-scope"]
     name: pytest
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON((needs['ci-change-scope'].result == 'success' && needs['ci-change-scope'].outputs.docs_only == 'true') && '["self-hosted","ubuntu-latest"]' || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v5
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
       - uses: astral-sh/setup-uv@v6
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         with:
           enable-cache: true
       - name: Install dependencies
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         run: uv sync --frozen
       # Uncomment when the project uses Prisma (or similar codegen).
       # - name: Generate Prisma client
       #   run: uv run prisma generate
       - name: pytest
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         run: uv run pytest
+
+      - name: Docs-only exemption
+        if: ${{ needs['ci-change-scope'].result == 'success' && needs['ci-change-scope'].outputs.docs_only == 'true' }}
+        shell: bash
+        working-directory: .
+        env:
+          CI_CHANGE_REASON: ${{ needs['ci-change-scope'].outputs.reason }}
+        run: |
+          printf '%s\n' "$CI_CHANGE_REASON" >> "$GITHUB_STEP_SUMMARY"
